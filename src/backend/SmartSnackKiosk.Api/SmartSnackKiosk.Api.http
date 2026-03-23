@@ -1,0 +1,6 @@
+@SmartSnackKiosk.Api_HostAddress = http://localhost:5187
+
+GET {{SmartSnackKiosk.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{B884A956-CFC2-4BD8-80DB-487594A2B32D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "backend", "backend", "{E8D731AF-34FC-4CE6-AD48-BDBF68BEA859}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartSnackKiosk.Api", "src\backend\SmartSnackKiosk.Api\SmartSnackKiosk.Api.csproj", "{6B99D792-C09F-4680-AD8F-1E7709370846}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6B99D792-C09F-4680-AD8F-1E7709370846}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B99D792-C09F-4680-AD8F-1E7709370846}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B99D792-C09F-4680-AD8F-1E7709370846}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B99D792-C09F-4680-AD8F-1E7709370846}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E8D731AF-34FC-4CE6-AD48-BDBF68BEA859} = {B884A956-CFC2-4BD8-80DB-487594A2B32D}
+		{6B99D792-C09F-4680-AD8F-1E7709370846} = {E8D731AF-34FC-4CE6-AD48-BDBF68BEA859}
+	EndGlobalSection
+EndGlobal
