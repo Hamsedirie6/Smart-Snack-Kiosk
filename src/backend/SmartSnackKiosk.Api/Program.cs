@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SmartSnackKiosk.Api.Data;
+using SmartSnackKiosk.Api.Services;
+using SmartSnackKiosk.Api.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,9 @@ builder.Services.AddSwaggerGen();
 // Configure DbContext with SQLite
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
 var app = builder.Build();
 
