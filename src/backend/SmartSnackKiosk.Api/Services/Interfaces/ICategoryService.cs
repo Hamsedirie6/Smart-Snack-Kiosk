@@ -1,0 +1,10 @@
+using SmartSnackKiosk.Api.DTOs.Categories;
+
+namespace SmartSnackKiosk.Api.Services.Interfaces;
+
+public interface ICategoryService
+{
+    Task<IEnumerable<CategoryResponseDto>> GetAllAsync();
+    Task<CategoryResponseDto?> GetByIdAsync(int id);
+    Task<CategoryResponseDto> CreateAsync(CategoryCreateDto categoryCreateDto);
+}
