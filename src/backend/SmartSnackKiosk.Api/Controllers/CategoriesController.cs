@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartSnackKiosk.Api.DTOs.Categories;
 using SmartSnackKiosk.Api.Services.Interfaces;
@@ -6,6 +7,7 @@ namespace SmartSnackKiosk.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 public class CategoriesController : ControllerBase
 {
     private readonly ICategoryService _categoryService;

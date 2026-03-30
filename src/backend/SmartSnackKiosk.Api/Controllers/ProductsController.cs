@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartSnackKiosk.Api.DTOs.Products;
 using SmartSnackKiosk.Api.Services.Interfaces;
@@ -6,6 +7,7 @@ namespace SmartSnackKiosk.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
@@ -79,6 +81,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet("kiosk")]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<KioskProductDto>>> GetKioskProducts()
     {
         var products = await _productService.GetKioskProductsAsync();
