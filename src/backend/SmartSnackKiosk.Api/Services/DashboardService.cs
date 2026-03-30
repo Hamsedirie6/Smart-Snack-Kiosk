@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SmartSnackKiosk.Api.Data;
 using SmartSnackKiosk.Api.DTOs.Dashboard;
+using SmartSnackKiosk.Api.Entities;
 using SmartSnackKiosk.Api.Services.Interfaces;
 
 namespace SmartSnackKiosk.Api.Services;

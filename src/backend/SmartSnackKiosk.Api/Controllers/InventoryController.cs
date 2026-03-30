@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartSnackKiosk.Api.DTOs.Inventory;
 using SmartSnackKiosk.Api.Services.Interfaces;
@@ -6,6 +7,7 @@ namespace SmartSnackKiosk.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 public class InventoryController : ControllerBase
 {
     private readonly IInventoryService _inventoryService;
