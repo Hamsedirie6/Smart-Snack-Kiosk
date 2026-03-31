@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartSnackKiosk.Api.Data;
 using SmartSnackKiosk.Api.DTOs.Inventory;
 using SmartSnackKiosk.Api.Entities;
+using SmartSnackKiosk.Api.Helpers;
 using SmartSnackKiosk.Api.Services.Interfaces;
 
 namespace SmartSnackKiosk.Api.Services;
@@ -17,31 +18,35 @@ public class InventoryService : IInventoryService
 
     public async Task<IEnumerable<InventoryProductDto>> GetInventoryOverviewAsync()
     {
-        return await _context.Products
+        var products = await _context.Products
             .AsNoTracking()
             .Include(product => product.Category)
             .OrderBy(product => product.Name)
-            .Select(product => MapToInventoryProductDto(product))
             .ToListAsync();
+
+        return products.Select(MapToInventoryProductDto);
     }
 
     public async Task<IEnumerable<LowStockProductDto>> GetLowStockProductsAsync()
     {
-        return await _context.Products
+        // Ladda entiteter till minnet innan mappning – GetStockStatus är en C#-metod
+        // som EF Core inte kan översätta till SQL
+        var products = await _context.Products
             .AsNoTracking()
             .Include(product => product.Category)
-            .Where(product => product.StockQuantity <= 3)
+            .Where(product => product.StockQuantity <= StockStatusHelper.LowStockThreshold)
             .OrderBy(product => product.StockQuantity)
             .ThenBy(product => product.Name)
-            .Select(product => new LowStockProductDto
-            {
-                Id = product.Id,
-                Name = product.Name,
-                StockQuantity = product.StockQuantity,
-                CategoryName = product.Category.Name,
-                StockStatus = GetStockStatus(product.StockQuantity)
-            })
             .ToListAsync();
+
+        return products.Select(product => new LowStockProductDto
+        {
+            ProductId = product.Id,
+            ProductName = product.Name,
+            StockQuantity = product.StockQuantity,
+            CategoryName = product.Category.Name,
+            StockStatus = StockStatusHelper.GetStockStatus(product.StockQuantity)
+        });
     }
 
     public async Task<InventoryProductDto?> UpdateStockAsync(int productId, UpdateStockDto updateStockDto)
@@ -74,22 +79,7 @@ public class InventoryService : IInventoryService
             CategoryId = product.CategoryId,
             CategoryName = product.Category.Name,
             IsActive = product.IsActive,
-            StockStatus = GetStockStatus(product.StockQuantity)
+            StockStatus = StockStatusHelper.GetStockStatus(product.StockQuantity)
         };
-    }
-
-    private static string GetStockStatus(int stockQuantity)
-    {
-        if (stockQuantity == 0)
-        {
-            return "Slut i lager";
-        }
-
-        if (stockQuantity <= 3)
-        {
-            return "L\u00E5gt lager";
-        }
-
-        return "I lager";
     }
 }
