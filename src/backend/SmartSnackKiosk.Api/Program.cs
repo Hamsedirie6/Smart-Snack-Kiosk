@@ -41,6 +41,30 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+// Configure CORS – tillåt frontend att kommunicera med API:et
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        if (builder.Environment.IsDevelopment())
+        {
+            // I utveckling: tillåt lokala frontend-portar
+            policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            // I produktion: sätt rätt origin via miljövariabel ALLOWED_ORIGIN
+            var allowedOrigin = builder.Configuration["AllowedOrigin"]
+                ?? throw new InvalidOperationException("AllowedOrigin saknas i produktionskonfigurationen.");
+            policy.WithOrigins(allowedOrigin)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+    });
+});
+
 // Register services
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
@@ -51,6 +75,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 
+// Seed: kör migrations och skapa standard-admin om ingen finns
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -58,13 +83,19 @@ using (var scope = app.Services.CreateScope())
 
     if (!context.AdminUsers.Any())
     {
+        var adminUsername = builder.Configuration["AdminSettings:Username"]
+            ?? throw new InvalidOperationException("AdminSettings:Username saknas i konfigurationen.");
+
+        var adminPassword = builder.Configuration["AdminSettings:Password"]
+            ?? throw new InvalidOperationException("AdminSettings:Password saknas i konfigurationen.");
+
         var adminUser = new AdminUser
         {
-            Username = "admin",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!")
+            Username = adminUsername,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword)
         };
         context.AdminUsers.Add(adminUser);
-        context.SaveChanges();
+        await context.SaveChangesAsync();
     }
 }
 
@@ -76,6 +107,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
