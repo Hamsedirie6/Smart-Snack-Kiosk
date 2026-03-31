@@ -26,15 +26,29 @@ public class DashboardController : ControllerBase
     [HttpGet("sales-over-time")]
     public async Task<IActionResult> GetSalesOverTime([FromQuery] string period)
     {
-        var sales = await _dashboardService.GetSalesOverTimeAsync(period);
-        return Ok(sales);
+        try
+        {
+            var sales = await _dashboardService.GetSalesOverTimeAsync(period);
+            return Ok(sales);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpGet("top-products")]
     public async Task<IActionResult> GetTopProducts([FromQuery] string period, [FromQuery] int top = 5)
     {
-        var products = await _dashboardService.GetTopProductsAsync(period, top);
-        return Ok(products);
+        try
+        {
+            var products = await _dashboardService.GetTopProductsAsync(period, top);
+            return Ok(products);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpGet("low-stock")]

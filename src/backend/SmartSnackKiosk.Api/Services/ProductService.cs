@@ -40,7 +40,7 @@ public class ProductService : IProductService
         var categoryExists = await CategoryExistsAsync(productCreateDto.CategoryId);
         if (!categoryExists)
         {
-            return null;
+            throw new ArgumentException("Angiven kategori finns inte.", nameof(productCreateDto.CategoryId));
         }
 
         var product = new Product
@@ -76,7 +76,8 @@ public class ProductService : IProductService
         var categoryExists = await CategoryExistsAsync(productUpdateDto.CategoryId);
         if (!categoryExists)
         {
-            return null;
+            // Kastar undantag så att controllern kan skilja detta från "produkt saknas"
+            throw new ArgumentException("Angiven kategori finns inte.", nameof(productUpdateDto.CategoryId));
         }
 
         product.Name = productUpdateDto.Name.Trim();
