@@ -61,4 +61,51 @@ public class CategoryService : ICategoryService
             CreatedAt = category.CreatedAt
         };
     }
+
+    public async Task<CategoryResponseDto?> UpdateAsync(int id, CategoryUpdateDto categoryUpdateDto)
+    {
+        var category = await _context.Categories.FindAsync(id);
+        if (category is null)
+        {
+            return null;
+        }
+
+        category.Name = categoryUpdateDto.Name.Trim();
+        await _context.SaveChangesAsync();
+
+        return new CategoryResponseDto
+        {
+            Id = category.Id,
+            Name = category.Name,
+            CreatedAt = category.CreatedAt
+        };
+    }
+
+    /// <summary>
+    /// Tar bort en kategori.
+    /// Returnerar null om kategorin inte finns.
+    /// Returnerar false om kategorin har produkter kopplade till sig (kan inte tas bort).
+    /// Returnerar true om borttagningen lyckades.
+    /// </summary>
+    public async Task<bool?> DeleteAsync(int id)
+    {
+        var category = await _context.Categories
+            .Include(c => c.Products)
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (category is null)
+        {
+            return null;
+        }
+
+        if (category.Products.Any())
+        {
+            return false;
+        }
+
+        _context.Categories.Remove(category);
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
 }
