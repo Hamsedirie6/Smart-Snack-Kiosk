@@ -12,6 +12,7 @@ function KioskPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('Alla produkter')
 
   useEffect(() => {
     async function loadProducts() {
@@ -170,21 +171,73 @@ function KioskPage() {
     (sum, item) => sum + item.price * item.quantity,
     0,
   )
+  const selectedItemCount = Object.values(selectedQuantities).reduce(
+    (sum, quantity) => sum + quantity,
+    0,
+  )
+  const inStockCount = products.filter(
+    (product) => product.stockQuantity > 0,
+  ).length
+  const categories = [
+    ...new Set(products.map((product) => product.categoryName).filter(Boolean)),
+  ].sort((left, right) => left.localeCompare(right, 'sv'))
+  const sortedProducts = [...products].sort((left, right) => {
+    const categoryComparison = (left.categoryName || '').localeCompare(
+      right.categoryName || '',
+      'sv',
+    )
+
+    if (categoryComparison !== 0) {
+      return categoryComparison
+    }
+
+    return left.name.localeCompare(right.name, 'sv')
+  })
+  const visibleProducts =
+    selectedCategory === 'Alla produkter'
+      ? sortedProducts
+      : sortedProducts.filter(
+          (product) => product.categoryName === selectedCategory,
+        )
 
   return (
     <main className="kiosk-page">
       <section className="hero-panel">
-        <div>
-          <p className="eyebrow">Smart Snack Kiosk</p>
-          <h1>Välj snacks och genomför ditt köp direkt</h1>
-          <p className="hero-panel__text">
-            Produkter i lager visas automatiskt. Välj antal, lägg i
-            varukorgen och slutför köpet utan inloggning.
-          </p>
+        <div className="hero-panel__content">
+          <div className="hero-panel__copy">
+            <p className="eyebrow">Smart Snack Kiosk</p>
+            <h1>Välj snacks, dryck och favoriter i en snabb self-service-kiosk</h1>
+            <p className="hero-panel__text">
+              Produkter i lager visas direkt. Välj antal, lägg till i
+              varukorgen och slutför köpet utan onödiga steg.
+            </p>
+          </div>
+
+          <div className="hero-panel__meta" aria-label="Kiosköversikt">
+            <span className="hero-chip">
+              <strong>{inStockCount}</strong>
+              <small>produkter i lager</small>
+            </span>
+            <span className="hero-chip">
+              <strong>{selectedItemCount}</strong>
+              <small>valda för köp</small>
+            </span>
+          </div>
         </div>
-        <div className="hero-panel__meta">
-          <span>{products.length} produkter tillgängliga</span>
-          <span>Touchvänlig kioskvy</span>
+
+        <div className="hero-panel__footer">
+          <div className="hero-panel__badges" aria-label="Kategorier">
+            {categories.slice(0, 4).map((category) => (
+              <span key={category} className="filter-chip">
+                {category}
+              </span>
+            ))}
+          </div>
+
+          <p className="hero-panel__hint">
+            Tryck på plus och minus för att välja antal. Lägg sedan till
+            produkten i varukorgen till höger.
+          </p>
         </div>
       </section>
 
@@ -208,7 +261,10 @@ function KioskPage() {
             </section>
           ) : (
             <ProductGrid
-              products={products}
+              products={visibleProducts}
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
               selectedQuantities={selectedQuantities}
               onDecreaseQuantity={(productId) =>
                 updateSelectedQuantity(productId, -1)

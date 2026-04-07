@@ -11,53 +11,65 @@ function ProductCard({
 
   return (
     <article className="product-card">
+      <div className="product-card__top">
+        <span className="product-card__category">{product.categoryName}</span>
+        <span className="product-card__availability">
+          {product.stockQuantity} i lager
+        </span>
+      </div>
+
       <div className="product-card__image-wrap">
         <img
           className="product-card__image"
           src={imageSrc}
           alt={product.name}
         />
-        <span className="product-card__category">{product.categoryName}</span>
       </div>
 
       <div className="product-card__content">
         <div className="product-card__header">
-          <h2>{product.name}</h2>
+          <h3 className="product-card__title">{product.name}</h3>
           <p className="product-card__price">{product.price.toFixed(2)} kr</p>
+          <p className="product-card__stock">
+            Välj antal och lägg till i varukorgen när du är redo.
+          </p>
         </div>
 
-        <p className="product-card__stock">Tillgängligt: {product.stockQuantity}</p>
+        <div className="product-card__footer">
+          <div
+            className="quantity-picker"
+            aria-label={`Välj antal för ${product.name}`}
+          >
+            <button
+              type="button"
+              className="quantity-picker__button"
+              onClick={() => onDecrease(product.id)}
+              disabled={quantity === 0}
+              aria-label={`Minska antal för ${product.name}`}
+            >
+              -
+            </button>
+            <span className="quantity-picker__value">{quantity}</span>
+            <button
+              type="button"
+              className="quantity-picker__button"
+              onClick={() => onIncrease(product.id)}
+              disabled={isIncreaseDisabled}
+              aria-label={`Öka antal för ${product.name}`}
+            >
+              +
+            </button>
+          </div>
 
-        <div className="quantity-picker" aria-label={`Välj antal för ${product.name}`}>
           <button
             type="button"
-            className="quantity-picker__button"
-            onClick={() => onDecrease(product.id)}
-            disabled={quantity === 0}
-            aria-label={`Minska antal för ${product.name}`}
+            className="primary-button primary-button--wide"
+            onClick={() => onAddToCart(product.id)}
+            disabled={isAddDisabled}
           >
-            -
-          </button>
-          <span className="quantity-picker__value">{quantity}</span>
-          <button
-            type="button"
-            className="quantity-picker__button"
-            onClick={() => onIncrease(product.id)}
-            disabled={isIncreaseDisabled}
-            aria-label={`Öka antal för ${product.name}`}
-          >
-            +
+            Lägg i varukorg
           </button>
         </div>
-
-        <button
-          type="button"
-          className="primary-button"
-          onClick={() => onAddToCart(product.id)}
-          disabled={isAddDisabled}
-        >
-          Lägg i varukorg
-        </button>
       </div>
     </article>
   )
