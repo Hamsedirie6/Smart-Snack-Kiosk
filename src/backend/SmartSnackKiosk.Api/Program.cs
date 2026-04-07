@@ -44,8 +44,11 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Configure DbContext
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("DefaultConnection saknas i konfigurationen.");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0))));
 
 // Configure JWT
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()
