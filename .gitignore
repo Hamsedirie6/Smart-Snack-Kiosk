@@ -26,6 +26,11 @@ coverage/
 bin/
 obj/
 
+# Lokala konfigurationsfiler med hemligheter – ska aldrig committas
+appsettings.Development.json
+appsettings.Local.json
+src/backend/SmartSnackKiosk.Api/appsettings.Development.json
+
 # User-specific
 *.rsuser
 *.suo

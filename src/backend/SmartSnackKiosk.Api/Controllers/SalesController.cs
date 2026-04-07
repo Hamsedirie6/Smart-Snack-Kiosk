@@ -29,7 +29,7 @@ public class SalesController : ControllerBase
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetSaleById(int id)
     {
         var sale = await _saleService.GetSaleByIdAsync(id);

@@ -40,15 +40,12 @@ public class ProductService : IProductService
         var categoryExists = await CategoryExistsAsync(productCreateDto.CategoryId);
         if (!categoryExists)
         {
-            return null;
+            throw new ArgumentException("Angiven kategori finns inte.", nameof(productCreateDto.CategoryId));
         }
 
         var product = new Product
         {
             Name = productCreateDto.Name.Trim(),
-            Description = string.IsNullOrWhiteSpace(productCreateDto.Description)
-                ? null
-                : productCreateDto.Description.Trim(),
             Price = productCreateDto.Price,
             StockQuantity = productCreateDto.StockQuantity,
             CategoryId = productCreateDto.CategoryId,
@@ -76,13 +73,11 @@ public class ProductService : IProductService
         var categoryExists = await CategoryExistsAsync(productUpdateDto.CategoryId);
         if (!categoryExists)
         {
-            return null;
+            // Kastar undantag så att controllern kan skilja detta från "produkt saknas"
+            throw new ArgumentException("Angiven kategori finns inte.", nameof(productUpdateDto.CategoryId));
         }
 
         product.Name = productUpdateDto.Name.Trim();
-        product.Description = string.IsNullOrWhiteSpace(productUpdateDto.Description)
-            ? null
-            : productUpdateDto.Description.Trim();
         product.Price = productUpdateDto.Price;
         product.StockQuantity = productUpdateDto.StockQuantity;
         product.CategoryId = productUpdateDto.CategoryId;
@@ -142,7 +137,6 @@ public class ProductService : IProductService
         {
             Id = product.Id,
             Name = product.Name,
-            Description = product.Description,
             Price = product.Price,
             StockQuantity = product.StockQuantity,
             CategoryId = product.CategoryId,

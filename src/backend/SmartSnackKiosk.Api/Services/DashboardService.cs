@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartSnackKiosk.Api.Data;
 using SmartSnackKiosk.Api.DTOs.Dashboard;
 using SmartSnackKiosk.Api.Entities;
+using SmartSnackKiosk.Api.Helpers;
 using SmartSnackKiosk.Api.Services.Interfaces;
 
 namespace SmartSnackKiosk.Api.Services;
@@ -18,31 +19,35 @@ public class DashboardService : IDashboardService
     public async Task<KpiSummaryDto> GetKpiSummaryAsync()
     {
         var today = DateTime.UtcNow.Date;
-        var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
+        var startOfWeek = GetStartOfWeek(today);
         var startOfMonth = new DateTime(today.Year, today.Month, 1);
 
-        var sales = await _context.Sales
-            .Include(s => s.SaleItems)
+        // Ladda bara innevarande månads försäljningar – inte hela historiken
+        var salesThisMonth = await _context.Sales
+            .Where(s => s.CreatedAt.Date >= startOfMonth)
             .ToListAsync();
+
+        var salesToday = salesThisMonth.Where(s => s.CreatedAt.Date == today).ToList();
+        var salesThisWeek = salesThisMonth.Where(s => s.CreatedAt.Date >= startOfWeek).ToList();
 
         return new KpiSummaryDto
         {
-            RevenueToday = sales.Where(s => s.CreatedAt.Date == today).Sum(s => s.TotalAmount),
-            RevenueThisWeek = sales.Where(s => s.CreatedAt.Date >= startOfWeek).Sum(s => s.TotalAmount),
-            RevenueThisMonth = sales.Where(s => s.CreatedAt.Date >= startOfMonth).Sum(s => s.TotalAmount),
-            SalesCountToday = sales.Count(s => s.CreatedAt.Date == today),
-            SalesCountThisWeek = sales.Count(s => s.CreatedAt.Date >= startOfWeek),
-            SalesCountThisMonth = sales.Count(s => s.CreatedAt.Date >= startOfMonth),
-            AverageSaleAmountToday = sales.Where(s => s.CreatedAt.Date == today).DefaultIfEmpty().Average(s => s?.TotalAmount ?? 0),
-            AverageSaleAmountThisWeek = sales.Where(s => s.CreatedAt.Date >= startOfWeek).DefaultIfEmpty().Average(s => s?.TotalAmount ?? 0),
-            AverageSaleAmountThisMonth = sales.Where(s => s.CreatedAt.Date >= startOfMonth).DefaultIfEmpty().Average(s => s?.TotalAmount ?? 0)
+            RevenueToday = salesToday.Sum(s => s.TotalAmount),
+            RevenueThisWeek = salesThisWeek.Sum(s => s.TotalAmount),
+            RevenueThisMonth = salesThisMonth.Sum(s => s.TotalAmount),
+            SalesCountToday = salesToday.Count,
+            SalesCountThisWeek = salesThisWeek.Count,
+            SalesCountThisMonth = salesThisMonth.Count,
+            AverageSaleAmountToday = salesToday.Count > 0 ? salesToday.Average(s => s.TotalAmount) : 0,
+            AverageSaleAmountThisWeek = salesThisWeek.Count > 0 ? salesThisWeek.Average(s => s.TotalAmount) : 0,
+            AverageSaleAmountThisMonth = salesThisMonth.Count > 0 ? salesThisMonth.Average(s => s.TotalAmount) : 0
         };
     }
 
     public async Task<List<SalesOverTimeDto>> GetSalesOverTimeAsync(string period)
     {
         var today = DateTime.UtcNow.Date;
-        var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
+        var startOfWeek = GetStartOfWeek(today);
         var startOfMonth = new DateTime(today.Year, today.Month, 1);
 
         IQueryable<Sale> query = _context.Sales;
@@ -61,7 +66,7 @@ public class DashboardService : IDashboardService
         }
         else
         {
-            throw new ArgumentException("Invalid period specified.");
+            throw new ArgumentException($"Ogiltigt period-värde: '{period}'. Tillåtna värden är 'today', 'week', 'month'.");
         }
 
         return await query
@@ -78,7 +83,7 @@ public class DashboardService : IDashboardService
     public async Task<List<TopProductDto>> GetTopProductsAsync(string period, int top)
     {
         var today = DateTime.UtcNow.Date;
-        var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
+        var startOfWeek = GetStartOfWeek(today);
         var startOfMonth = new DateTime(today.Year, today.Month, 1);
 
         IQueryable<SaleItem> query = _context.SaleItems.Include(si => si.Product);
@@ -97,7 +102,7 @@ public class DashboardService : IDashboardService
         }
         else
         {
-            throw new ArgumentException("Invalid period specified.");
+            throw new ArgumentException($"Ogiltigt period-värde: '{period}'. Tillåtna värden är 'today', 'week', 'month'.");
         }
 
         return await query
@@ -116,18 +121,30 @@ public class DashboardService : IDashboardService
 
     public async Task<List<LowStockProductDto>> GetLowStockProductsAsync()
     {
-        return await _context.Products
+        // Ladda låglagerprodukter (litet dataset) och mappa i minnet
+        // så att vi kan använda den gemensamma StockStatusHelper
+        var products = await _context.Products
+            .AsNoTracking()
             .Include(p => p.Category)
-            .Where(p => p.StockQuantity <= 3)
-            .Select(p => new LowStockProductDto
-            {
-                ProductId = p.Id,
-                ProductName = p.Name,
-                StockQuantity = p.StockQuantity,
-                CategoryName = p.Category.Name,
-                StockStatus = p.StockQuantity == 0 ? "Slut i lager" :
-                              p.StockQuantity <= 3 ? "Lågt lager" : "I lager"
-            })
+            .Where(p => p.StockQuantity <= StockStatusHelper.LowStockThreshold)
             .ToListAsync();
+
+        return products.Select(p => new LowStockProductDto
+        {
+            ProductId = p.Id,
+            ProductName = p.Name,
+            StockQuantity = p.StockQuantity,
+            CategoryName = p.Category.Name,
+            StockStatus = StockStatusHelper.GetStockStatus(p.StockQuantity)
+        }).ToList();
+    }
+
+    // Hjälpmetod: returnerar måndagen i aktuell vecka
+    private static DateTime GetStartOfWeek(DateTime date)
+    {
+        // DayOfWeek: Sunday=0, Monday=1 ... Saturday=6
+        // Formeln (day + 6) % 7 ger antal dagar sedan måndag
+        var daysFromMonday = ((int)date.DayOfWeek + 6) % 7;
+        return date.AddDays(-daysFromMonday);
     }
 }

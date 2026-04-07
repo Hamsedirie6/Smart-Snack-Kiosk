@@ -39,14 +39,16 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ProductResponseDto>> CreateProduct(ProductCreateDto productCreateDto)
     {
-        var createdProduct = await _productService.CreateAsync(productCreateDto);
-        if (createdProduct is null)
+        try
         {
-            ModelState.AddModelError(nameof(productCreateDto.CategoryId), "Angiven kategori finns inte.");
+            var createdProduct = await _productService.CreateAsync(productCreateDto);
+            return CreatedAtAction(nameof(GetProduct), new { id = createdProduct!.Id }, createdProduct);
+        }
+        catch (ArgumentException ex)
+        {
+            ModelState.AddModelError(nameof(productCreateDto.CategoryId), ex.Message);
             return ValidationProblem(ModelState);
         }
-
-        return CreatedAtAction(nameof(GetProduct), new { id = createdProduct.Id }, createdProduct);
     }
 
     [HttpPut("{id:int}")]
@@ -58,14 +60,16 @@ public class ProductsController : ControllerBase
             return NotFound();
         }
 
-        var updatedProduct = await _productService.UpdateAsync(id, productUpdateDto);
-        if (updatedProduct is null)
+        try
         {
-            ModelState.AddModelError(nameof(productUpdateDto.CategoryId), "Angiven kategori finns inte.");
+            var updatedProduct = await _productService.UpdateAsync(id, productUpdateDto);
+            return Ok(updatedProduct);
+        }
+        catch (ArgumentException ex)
+        {
+            ModelState.AddModelError(nameof(productUpdateDto.CategoryId), ex.Message);
             return ValidationProblem(ModelState);
         }
-
-        return Ok(updatedProduct);
     }
 
     [HttpPatch("{id:int}/deactivate")]
