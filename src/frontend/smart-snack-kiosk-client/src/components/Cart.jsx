@@ -17,23 +17,34 @@ function Cart({
         <div>
           <p className="eyebrow">Varukorg</p>
           <h2>Din beställning</h2>
+          <p className="cart-panel__subtext">
+            Granska valda produkter och justera antal innan du slutför köpet.
+          </p>
         </div>
         <span className="cart-panel__badge">{itemCount}</span>
       </div>
 
       {items.length === 0 ? (
-        <div className="empty-state empty-state--compact">
+        <div className="empty-state empty-state--compact empty-state--cart">
+          <div className="empty-state__icon" aria-hidden="true">
+            Bag
+          </div>
           <h2>Varukorgen är tom</h2>
-          <p>Välj produkter och lägg dem i varukorgen för att fortsätta.</p>
+          <p>Välj produkter i listan och lägg till dem här för att fortsätta.</p>
         </div>
       ) : (
         <>
           <ul className="cart-list">
             {items.map((item) => (
               <li key={item.productId} className="cart-item">
-                <div className="cart-item__info">
-                  <strong>{item.name}</strong>
-                  <span>{item.price.toFixed(2)} kr styck</span>
+                <div className="cart-item__row">
+                  <div className="cart-item__info">
+                    <strong>{item.name}</strong>
+                    <span>{item.price.toFixed(2)} kr styck</span>
+                  </div>
+                  <strong className="cart-item__total">
+                    {(item.price * item.quantity).toFixed(2)} kr
+                  </strong>
                 </div>
 
                 <div className="cart-item__actions">
@@ -57,10 +68,6 @@ function Cart({
                       +
                     </button>
                   </div>
-
-                  <strong className="cart-item__total">
-                    {(item.price * item.quantity).toFixed(2)} kr
-                  </strong>
 
                   <button
                     type="button"
