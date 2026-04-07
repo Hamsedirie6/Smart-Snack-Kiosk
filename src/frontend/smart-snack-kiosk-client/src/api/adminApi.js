@@ -51,6 +51,7 @@ export const getProductById = (id) => adminApi.get(`/products/${id}`)
 export const createProduct = (data) => adminApi.post('/products', data)
 export const updateProduct = (id, data) => adminApi.put(`/products/${id}`, data)
 export const deactivateProduct = (id) => adminApi.patch(`/products/${id}/deactivate`)
+export const reactivateProduct = (id) => adminApi.patch(`/products/${id}/reactivate`)
 
 // --- Inventory ---
 export const getInventory = () => adminApi.get('/inventory')

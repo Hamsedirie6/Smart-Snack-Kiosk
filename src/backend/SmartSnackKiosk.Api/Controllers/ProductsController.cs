@@ -84,6 +84,18 @@ public class ProductsController : ControllerBase
         return Ok(deactivatedProduct);
     }
 
+    [HttpPatch("{id:int}/reactivate")]
+    public async Task<ActionResult<ProductResponseDto>> ReactivateProduct(int id)
+    {
+        var reactivatedProduct = await _productService.ReactivateAsync(id);
+        if (reactivatedProduct is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(reactivatedProduct);
+    }
+
     [HttpGet("kiosk")]
     [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<KioskProductDto>>> GetKioskProducts()

@@ -9,5 +9,6 @@ public interface IProductService
     Task<ProductResponseDto?> CreateAsync(ProductCreateDto productCreateDto);
     Task<ProductResponseDto?> UpdateAsync(int id, ProductUpdateDto productUpdateDto);
     Task<ProductResponseDto?> DeactivateAsync(int id);
+    Task<ProductResponseDto?> ReactivateAsync(int id);
     Task<IEnumerable<KioskProductDto>> GetKioskProductsAsync();
 }

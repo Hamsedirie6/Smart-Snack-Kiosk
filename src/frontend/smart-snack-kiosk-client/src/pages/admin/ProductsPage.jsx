@@ -4,6 +4,7 @@ import {
   createProduct,
   updateProduct,
   deactivateProduct,
+  reactivateProduct,
 } from '../../api/adminApi'
 import { getCategories } from '../../api/adminApi'
 
@@ -33,6 +34,10 @@ function ProductsPage() {
   // Inaktivera-dialog: { id, name } eller null
   const [pendingDeactivate, setPendingDeactivate] = useState(null)
   const [isDeactivating, setIsDeactivating] = useState(false)
+
+  // Aktivera-dialog: { id, name } eller null
+  const [pendingReactivate, setPendingReactivate] = useState(null)
+  const [isReactivating, setIsReactivating] = useState(false)
 
   const nameInputRef = useRef(null)
   const feedbackTimerRef = useRef(null)
@@ -152,6 +157,31 @@ function ProductsPage() {
       showFeedback('error', 'Kunde inte inaktivera produkten. Försök igen.')
     } finally {
       setIsDeactivating(false)
+    }
+  }
+
+  function openReactivateConfirm(product) {
+    setPendingReactivate({ id: product.id, name: product.name })
+  }
+
+  function cancelReactivate() {
+    setPendingReactivate(null)
+  }
+
+  async function handleReactivate() {
+    if (!pendingReactivate) return
+
+    setIsReactivating(true)
+    try {
+      await reactivateProduct(pendingReactivate.id)
+      await fetchData()
+      const name = pendingReactivate.name
+      setPendingReactivate(null)
+      showFeedback('success', `"${name}" aktiverades igen.`)
+    } catch {
+      showFeedback('error', 'Kunde inte aktivera produkten. Försök igen.')
+    } finally {
+      setIsReactivating(false)
     }
   }
 
@@ -354,6 +384,36 @@ function ProductsPage() {
         </div>
       )}
 
+      {/* Aktivera-dialog */}
+      {pendingReactivate && (
+        <div className="dialog-overlay" onClick={cancelReactivate}>
+          <div className="dialog-box" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h2>Aktivera produkt?</h2>
+            <p>
+              Vill du aktivera <strong>"{pendingReactivate.name}"</strong> igen?
+              <br />
+              Produkten visas då i kiosken.
+            </p>
+            <div className="dialog-box__actions">
+              <button
+                className="btn btn--ghost btn--sm"
+                onClick={cancelReactivate}
+                disabled={isReactivating}
+              >
+                Avbryt
+              </button>
+              <button
+                className="btn btn--primary btn--sm"
+                onClick={handleReactivate}
+                disabled={isReactivating}
+              >
+                {isReactivating ? 'Aktiverar…' : 'Aktivera'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabell */}
       {products.length > 0 && (
         <div className="table-wrapper">
@@ -399,13 +459,22 @@ function ProductsPage() {
                       >
                         Redigera
                       </button>
-                      {product.isActive && (
+                      {product.isActive ? (
                         <button
                           className="btn btn--danger btn--sm"
                           onClick={() => openDeactivateConfirm(product)}
                           disabled={isFormOpen}
                         >
                           Inaktivera
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn--ghost btn--sm"
+                          onClick={() => openReactivateConfirm(product)}
+                          disabled={isFormOpen}
+                          style={{ color: 'var(--a-success)', borderColor: 'var(--a-success)' }}
+                        >
+                          Aktivera
                         </button>
                       )}
                     </div>
