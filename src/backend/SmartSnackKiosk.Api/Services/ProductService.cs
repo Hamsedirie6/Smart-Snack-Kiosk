@@ -107,6 +107,22 @@ public class ProductService : IProductService
         return await GetByIdAsync(product.Id);
     }
 
+    public async Task<ProductResponseDto?> ReactivateAsync(int id)
+    {
+        var product = await _context.Products.FindAsync(id);
+        if (product is null)
+        {
+            return null;
+        }
+
+        product.IsActive = true;
+        product.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return await GetByIdAsync(product.Id);
+    }
+
     public async Task<IEnumerable<KioskProductDto>> GetKioskProductsAsync()
     {
         return await _context.Products
