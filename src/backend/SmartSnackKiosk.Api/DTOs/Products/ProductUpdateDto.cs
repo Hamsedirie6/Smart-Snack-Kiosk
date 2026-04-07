@@ -8,7 +8,7 @@ public class ProductUpdateDto
     [StringLength(200)]
     public string Name { get; set; } = string.Empty;
 
-    [Range(typeof(decimal), "0.01", "79228162514264337593543950335")]
+    [Range(typeof(decimal), "0.01", "79228162514264337593543950335", ParseLimitsInInvariantCulture = true)]
     public decimal Price { get; set; }
 
     [Range(0, int.MaxValue)]
