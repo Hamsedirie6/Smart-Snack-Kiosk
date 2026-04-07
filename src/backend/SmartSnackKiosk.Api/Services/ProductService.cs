@@ -46,9 +46,6 @@ public class ProductService : IProductService
         var product = new Product
         {
             Name = productCreateDto.Name.Trim(),
-            Description = string.IsNullOrWhiteSpace(productCreateDto.Description)
-                ? null
-                : productCreateDto.Description.Trim(),
             Price = productCreateDto.Price,
             StockQuantity = productCreateDto.StockQuantity,
             CategoryId = productCreateDto.CategoryId,
@@ -81,9 +78,6 @@ public class ProductService : IProductService
         }
 
         product.Name = productUpdateDto.Name.Trim();
-        product.Description = string.IsNullOrWhiteSpace(productUpdateDto.Description)
-            ? null
-            : productUpdateDto.Description.Trim();
         product.Price = productUpdateDto.Price;
         product.StockQuantity = productUpdateDto.StockQuantity;
         product.CategoryId = productUpdateDto.CategoryId;
@@ -143,7 +137,6 @@ public class ProductService : IProductService
         {
             Id = product.Id,
             Name = product.Name,
-            Description = product.Description,
             Price = product.Price,
             StockQuantity = product.StockQuantity,
             CategoryId = product.CategoryId,
