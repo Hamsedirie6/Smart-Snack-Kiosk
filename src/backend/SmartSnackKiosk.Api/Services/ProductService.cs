@@ -137,6 +137,7 @@ public class ProductService : IProductService
                 Price = product.Price,
                 ImageUrl = product.ImageUrl,
                 CategoryName = product.Category.Name,
+                CategoryImageUrl = product.Category.ImageUrl,
                 StockQuantity = product.StockQuantity
             })
             .ToListAsync();

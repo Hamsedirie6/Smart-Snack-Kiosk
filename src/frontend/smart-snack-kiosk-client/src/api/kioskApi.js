@@ -10,6 +10,16 @@ export async function fetchKioskProducts() {
   return response.json()
 }
 
+export async function fetchKioskCategories() {
+  const response = await fetch(`${apiBaseUrl}/categories/kiosk`)
+
+  if (!response.ok) {
+    throw new Error('Det gick inte att hämta kategorier.')
+  }
+
+  return response.json()
+}
+
 export async function createSale(items) {
   const response = await fetch(`${apiBaseUrl}/sales`, {
     method: 'POST',

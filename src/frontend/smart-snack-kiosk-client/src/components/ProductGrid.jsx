@@ -2,9 +2,7 @@ import ProductCard from './ProductCard'
 
 function ProductGrid({
   products,
-  categories,
   selectedCategory,
-  onSelectCategory,
   selectedQuantities,
   onDecreaseQuantity,
   onIncreaseQuantity,
@@ -24,11 +22,11 @@ function ProductGrid({
       <div className="section-heading">
         <div>
           <p className="eyebrow">Sortiment</p>
-          <h2 id="product-section-title">Välj produkter</h2>
-          <p className="section-heading__text">
-            Alla kort är byggda för snabb överblick i kiosk-läge med tydligt
-            pris, lagerstatus och val av antal.
-          </p>
+          <h2 id="product-section-title">
+            {selectedCategory === 'Alla produkter'
+              ? 'Alla produkter'
+              : selectedCategory}
+          </h2>
         </div>
 
         <div className="section-heading__meta">
@@ -38,30 +36,6 @@ function ProductGrid({
           </span>
         </div>
       </div>
-
-      {categories.length > 0 ? (
-        <div className="filter-chip-row" aria-label="Produktkategorier">
-          <button
-            type="button"
-            className={`filter-chip ${selectedCategory === 'Alla produkter' ? 'filter-chip--active' : ''}`}
-            onClick={() => onSelectCategory('Alla produkter')}
-            aria-pressed={selectedCategory === 'Alla produkter'}
-          >
-            Alla produkter
-          </button>
-          {categories.map((category) => (
-            <button
-              key={category}
-              type="button"
-              className={`filter-chip ${selectedCategory === category ? 'filter-chip--active' : ''}`}
-              onClick={() => onSelectCategory(category)}
-              aria-pressed={selectedCategory === category}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-      ) : null}
 
       <div className="product-grid" aria-label="Produkter">
         {products.map((product) => (

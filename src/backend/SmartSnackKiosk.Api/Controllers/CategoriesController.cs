@@ -36,6 +36,14 @@ public class CategoriesController : ControllerBase
         return Ok(category);
     }
 
+    [HttpGet("kiosk")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<KioskCategoryDto>>> GetKioskCategories()
+    {
+        var categories = await _categoryService.GetKioskAsync();
+        return Ok(categories);
+    }
+
     [HttpPost]
     public async Task<ActionResult<CategoryResponseDto>> CreateCategory(CategoryCreateDto categoryCreateDto)
     {

@@ -1,11 +1,9 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace SmartSnackKiosk.Api.DTOs.Categories;
 
-public class CategoryCreateDto
+public class KioskCategoryDto
 {
-    [Required]
-    [StringLength(100)]
+    public int Id { get; set; }
+
     public string Name { get; set; } = string.Empty;
 
     public string? ImageUrl { get; set; }

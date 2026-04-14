@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { getCategories, createCategory, updateCategory, deleteCategory } from '../../api/adminApi'
+import {
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from '../../api/adminApi'
 
 function formatDate(isoString) {
   return new Date(isoString).toLocaleDateString('sv-SE', {
@@ -9,32 +14,40 @@ function formatDate(isoString) {
   })
 }
 
+function isPreviewableUrl(value) {
+  if (!value.trim()) {
+    return false
+  }
+
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 function CategoriesPage() {
   const [categories, setCategories] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // Create-state
   const [isCreating, setIsCreating] = useState(false)
   const [newName, setNewName] = useState('')
+  const [newImageUrl, setNewImageUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Feedback: { type: 'success' | 'error', message: string } | null
   const [feedback, setFeedback] = useState(null)
 
-  // Delete-state – { id, name } för kategorin som väntar på bekräftelse, eller null
   const [pendingDelete, setPendingDelete] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // Edit-state
-  const [editingId, setEditingId] = useState(null)   // id för raden som redigeras
+  const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState('')
+  const [editImageUrl, setEditImageUrl] = useState('')
   const [isEditSubmitting, setIsEditSubmitting] = useState(false)
 
-  // Referens till input-fältet – används för att sätta fokus automatiskt
   const createInputRef = useRef(null)
   const editInputRef = useRef(null)
-
-  // Timer-ref för att rensa auto-dismiss utan minnesläckor
   const feedbackTimerRef = useRef(null)
 
   async function fetchCategories() {
@@ -43,7 +56,10 @@ function CategoriesPage() {
       const response = await getCategories()
       setCategories(response.data)
     } catch {
-      showFeedback('error', 'Kunde inte hämta kategorier. Kontrollera att backend körs.')
+      showFeedback(
+        'error',
+        'Kunde inte hämta kategorier. Kontrollera att backend körs.',
+      )
     } finally {
       setIsLoading(false)
     }
@@ -53,21 +69,18 @@ function CategoriesPage() {
     fetchCategories()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sätt fokus i input-fältet när formuläret öppnas
   useEffect(() => {
     if (isCreating) {
       createInputRef.current?.focus()
     }
   }, [isCreating])
 
-  // Sätt fokus i redigera-input när en rad öppnas för redigering
   useEffect(() => {
     if (editingId !== null) {
       editInputRef.current?.focus()
     }
   }, [editingId])
 
-  // Feedback-toast som försvinner automatiskt efter 3 sekunder
   function showFeedback(type, message) {
     clearTimeout(feedbackTimerRef.current)
     setFeedback({ type, message })
@@ -76,27 +89,33 @@ function CategoriesPage() {
 
   function openCreateForm() {
     setNewName('')
+    setNewImageUrl('')
     setIsCreating(true)
   }
 
   function cancelCreate() {
     setIsCreating(false)
     setNewName('')
+    setNewImageUrl('')
   }
 
   async function handleCreate(event) {
     event.preventDefault()
 
-    const trimmed = newName.trim()
-    if (!trimmed) return
+    const trimmedName = newName.trim()
+    if (!trimmedName) return
 
     setIsSubmitting(true)
     try {
-      await createCategory({ name: trimmed })
-      await fetchCategories()         // Uppdatera listan direkt
+      await createCategory({
+        name: trimmedName,
+        imageUrl: newImageUrl.trim() || null,
+      })
+      await fetchCategories()
       setIsCreating(false)
       setNewName('')
-      showFeedback('success', `Kategorin "${trimmed}" skapades.`)
+      setNewImageUrl('')
+      showFeedback('success', `Kategorin "${trimmedName}" skapades.`)
     } catch {
       showFeedback('error', 'Kunde inte skapa kategorin. Försök igen.')
     } finally {
@@ -125,7 +144,10 @@ function CategoriesPage() {
     } catch (error) {
       if (error.response?.status === 409) {
         setPendingDelete(null)
-        showFeedback('error', `Kategorin "${pendingDelete.name}" kan inte tas bort – den har produkter kopplade till sig.`)
+        showFeedback(
+          'error',
+          `Kategorin "${pendingDelete.name}" kan inte tas bort eftersom den har produkter kopplade till sig.`,
+        )
       } else {
         showFeedback('error', 'Kunde inte ta bort kategorin. Försök igen.')
       }
@@ -137,26 +159,32 @@ function CategoriesPage() {
   function openEdit(category) {
     setEditingId(category.id)
     setEditName(category.name)
+    setEditImageUrl(category.imageUrl ?? '')
   }
 
   function cancelEdit() {
     setEditingId(null)
     setEditName('')
+    setEditImageUrl('')
   }
 
   async function handleEditSave(event, categoryId) {
     event.preventDefault()
 
-    const trimmed = editName.trim()
-    if (!trimmed) return
+    const trimmedName = editName.trim()
+    if (!trimmedName) return
 
     setIsEditSubmitting(true)
     try {
-      await updateCategory(categoryId, { name: trimmed })
+      await updateCategory(categoryId, {
+        name: trimmedName,
+        imageUrl: editImageUrl.trim() || null,
+      })
       await fetchCategories()
       setEditingId(null)
       setEditName('')
-      showFeedback('success', `Kategorin uppdaterades till "${trimmed}".`)
+      setEditImageUrl('')
+      showFeedback('success', `Kategorin uppdaterades till "${trimmedName}".`)
     } catch {
       showFeedback('error', 'Kunde inte uppdatera kategorin. Försök igen.')
     } finally {
@@ -164,20 +192,17 @@ function CategoriesPage() {
     }
   }
 
-  // --- Renderar ---
-
   if (isLoading) {
     return (
       <div className="loading-state">
         <div className="loading-spinner" />
-        Hämtar kategorier…
+        Hämtar kategorier...
       </div>
     )
   }
 
   return (
     <div>
-      {/* Sidhuvud */}
       <div className="page-header">
         <div className="page-header__left">
           <h1>Kategorier</h1>
@@ -194,7 +219,6 @@ function CategoriesPage() {
         )}
       </div>
 
-      {/* Feedback-toast */}
       {feedback && (
         <div
           className={`feedback-toast feedback-toast--${feedback.type}`}
@@ -204,53 +228,79 @@ function CategoriesPage() {
         </div>
       )}
 
-      {/* Skapa-formulär – visas ovanför tabellen */}
       {isCreating && (
         <div className="card" style={{ marginBottom: '1.25rem' }}>
           <div className="card__body">
-            <p style={{
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              color: 'var(--a-text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '0.75rem',
-            }}>
+            <p
+              style={{
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: 'var(--a-text-muted)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '0.75rem',
+              }}
+            >
               Ny kategori
             </p>
-            <form className="inline-form" onSubmit={handleCreate}>
-              <input
-                ref={createInputRef}
-                className="form-input"
-                type="text"
-                placeholder="Kategorinamn"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                maxLength={100}
-                required
-                style={{ minWidth: '220px' }}
-              />
-              <button
-                type="submit"
-                className="btn btn--primary btn--sm"
-                disabled={isSubmitting || !newName.trim()}
-              >
-                {isSubmitting ? 'Sparar…' : 'Spara'}
-              </button>
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                onClick={cancelCreate}
-                disabled={isSubmitting}
-              >
-                Avbryt
-              </button>
+
+            <form onSubmit={handleCreate}>
+              <div className="admin-form-grid">
+                <div className="form-group">
+                  <label className="form-label">Namn *</label>
+                  <input
+                    ref={createInputRef}
+                    className="form-input"
+                    type="text"
+                    placeholder="Kategorinamn"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    maxLength={100}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Bild-url (valfritt)</label>
+                  <input
+                    className="form-input"
+                    type="url"
+                    placeholder="https://..."
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                  />
+                  {isPreviewableUrl(newImageUrl) && (
+                    <img
+                      className="admin-image-preview"
+                      src={newImageUrl}
+                      alt="Förhandsvisning av kategori"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="inline-form">
+                <button
+                  type="submit"
+                  className="btn btn--primary btn--sm"
+                  disabled={isSubmitting || !newName.trim()}
+                >
+                  {isSubmitting ? 'Sparar...' : 'Spara'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={cancelCreate}
+                  disabled={isSubmitting}
+                >
+                  Avbryt
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Tom lista */}
       {categories.length === 0 && !isCreating && (
         <div className="placeholder-page">
           <div className="placeholder-page__icon">🏷️</div>
@@ -261,10 +311,14 @@ function CategoriesPage() {
         </div>
       )}
 
-      {/* Bekräftelsedialog – Ta bort */}
       {pendingDelete && (
         <div className="dialog-overlay" onClick={cancelDelete}>
-          <div className="dialog-box" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="dialog-box"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2>Ta bort kategori?</h2>
             <p>
               Är du säker på att du vill ta bort{' '}
@@ -285,14 +339,13 @@ function CategoriesPage() {
                 onClick={handleDelete}
                 disabled={isDeleting}
               >
-                {isDeleting ? 'Tar bort…' : 'Ta bort'}
+                {isDeleting ? 'Tar bort...' : 'Ta bort'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Tabell */}
       {categories.length > 0 && (
         <div className="table-wrapper">
           <table className="data-table">
@@ -300,6 +353,7 @@ function CategoriesPage() {
               <tr>
                 <th className="col-id">#</th>
                 <th>Namn</th>
+                <th>Bild</th>
                 <th>Skapad</th>
                 <th className="col-actions">Åtgärder</th>
               </tr>
@@ -314,40 +368,84 @@ function CategoriesPage() {
                     <td>
                       {isEditing ? (
                         <form
-                          className="inline-form"
+                          className="admin-inline-edit"
                           onSubmit={(e) => handleEditSave(e, category.id)}
                         >
-                          <input
-                            ref={editInputRef}
-                            className="form-input"
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            maxLength={100}
-                            required
-                            style={{ minWidth: '180px' }}
-                          />
-                          <button
-                            type="submit"
-                            className="btn btn--primary btn--sm"
-                            disabled={isEditSubmitting || !editName.trim()}
-                          >
-                            {isEditSubmitting ? 'Sparar…' : 'Spara'}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn--ghost btn--sm"
-                            onClick={cancelEdit}
-                            disabled={isEditSubmitting}
-                          >
-                            Avbryt
-                          </button>
+                          <div className="form-group">
+                            <label className="form-label">Namn *</label>
+                            <input
+                              ref={editInputRef}
+                              className="form-input"
+                              type="text"
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              maxLength={100}
+                              required
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Bild-url (valfritt)</label>
+                            <input
+                              className="form-input"
+                              type="url"
+                              value={editImageUrl}
+                              onChange={(e) => setEditImageUrl(e.target.value)}
+                              placeholder="https://..."
+                            />
+                            {isPreviewableUrl(editImageUrl) && (
+                              <img
+                                className="admin-image-preview"
+                                src={editImageUrl}
+                                alt="Förhandsvisning av kategori"
+                              />
+                            )}
+                          </div>
+                          <div className="inline-form">
+                            <button
+                              type="submit"
+                              className="btn btn--primary btn--sm"
+                              disabled={isEditSubmitting || !editName.trim()}
+                            >
+                              {isEditSubmitting ? 'Sparar...' : 'Spara'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn--ghost btn--sm"
+                              onClick={cancelEdit}
+                              disabled={isEditSubmitting}
+                            >
+                              Avbryt
+                            </button>
+                          </div>
                         </form>
                       ) : (
                         <strong>{category.name}</strong>
                       )}
                     </td>
-                    <td style={{ color: 'var(--a-text-muted)', fontSize: '0.825rem' }}>
+                    <td>
+                      {category.imageUrl ? (
+                        <img
+                          className="admin-table-thumb"
+                          src={category.imageUrl}
+                          alt={category.name}
+                        />
+                      ) : (
+                        <span
+                          style={{
+                            color: 'var(--a-text-muted)',
+                            fontSize: '0.825rem',
+                          }}
+                        >
+                          Ingen bild
+                        </span>
+                      )}
+                    </td>
+                    <td
+                      style={{
+                        color: 'var(--a-text-muted)',
+                        fontSize: '0.825rem',
+                      }}
+                    >
                       {formatDate(category.createdAt)}
                     </td>
                     <td className="col-actions">
