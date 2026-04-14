@@ -2,10 +2,15 @@ import { useEffect, useState } from 'react'
 import Cart from '../components/Cart'
 import ProductGrid from '../components/ProductGrid'
 import PurchaseConfirmation from '../components/PurchaseConfirmation'
-import { createSale, fetchKioskProducts } from '../api/kioskApi'
+import {
+  createSale,
+  fetchKioskCategories,
+  fetchKioskProducts,
+} from '../api/kioskApi'
 
 function KioskPage() {
   const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
   const [cartItems, setCartItems] = useState([])
   const [selectedQuantities, setSelectedQuantities] = useState({})
   const [purchase, setPurchase] = useState(null)
@@ -13,14 +18,19 @@ function KioskPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('Alla produkter')
+  const [failedCategoryImages, setFailedCategoryImages] = useState({})
 
   useEffect(() => {
     async function loadProducts() {
       try {
         setIsLoading(true)
         setErrorMessage('')
-        const data = await fetchKioskProducts()
-        setProducts(data)
+        const [productData, categoryData] = await Promise.all([
+          fetchKioskProducts(),
+          fetchKioskCategories().catch(() => []),
+        ])
+        setProducts(productData)
+        setCategories(Array.isArray(categoryData) ? categoryData : [])
       } catch {
         setErrorMessage('Det gick inte att hämta produkter just nu.')
       } finally {
@@ -171,16 +181,25 @@ function KioskPage() {
     (sum, item) => sum + item.price * item.quantity,
     0,
   )
-  const selectedItemCount = Object.values(selectedQuantities).reduce(
-    (sum, quantity) => sum + quantity,
-    0,
-  )
-  const inStockCount = products.filter(
-    (product) => product.stockQuantity > 0,
-  ).length
-  const categories = [
+  const categoryNames = [
     ...new Set(products.map((product) => product.categoryName).filter(Boolean)),
   ].sort((left, right) => left.localeCompare(right, 'sv'))
+  const categoryCards = categoryNames.map((category) => {
+    const categoryDetails = categories.find(
+      (categoryItem) => categoryItem.name === category,
+    )
+
+    return {
+      name: category,
+      imageUrl: categoryDetails?.imageUrl || '',
+      theme:
+        category.toLowerCase().includes('dryck')
+          ? 'drink'
+          : category.toLowerCase().includes('mellan')
+            ? 'meal'
+            : 'snack',
+    }
+  })
   const sortedProducts = [...products].sort((left, right) => {
     const categoryComparison = (left.categoryName || '').localeCompare(
       right.categoryName || '',
@@ -203,41 +222,50 @@ function KioskPage() {
   return (
     <main className="kiosk-page">
       <section className="hero-panel">
-        <div className="hero-panel__content">
-          <div className="hero-panel__copy">
-            <p className="eyebrow">Smart Snack Kiosk</p>
-            <h1>Välj snacks, dryck och favoriter i en snabb self-service-kiosk</h1>
-            <p className="hero-panel__text">
-              Produkter i lager visas direkt. Välj antal, lägg till i
-              varukorgen och slutför köpet utan onödiga steg.
-            </p>
-          </div>
-
-          <div className="hero-panel__meta" aria-label="Kiosköversikt">
-            <span className="hero-chip">
-              <strong>{inStockCount}</strong>
-              <small>produkter i lager</small>
-            </span>
-            <span className="hero-chip">
-              <strong>{selectedItemCount}</strong>
-              <small>valda för köp</small>
-            </span>
-          </div>
+        <div className="hero-panel__header">
+          <h1>SMART SNACK KIOSK</h1>
         </div>
 
-        <div className="hero-panel__footer">
-          <div className="hero-panel__badges" aria-label="Kategorier">
-            {categories.slice(0, 4).map((category) => (
-              <span key={category} className="filter-chip">
-                {category}
+        <div className="hero-category-grid" aria-label="Välj kategori">
+          {categoryCards.map((category) => (
+            <button
+              key={category.name}
+              type="button"
+              className={`hero-category-card hero-category-card--${category.theme} ${selectedCategory === category.name ? 'hero-category-card--active' : ''}`}
+              onClick={() => setSelectedCategory(category.name)}
+              aria-pressed={selectedCategory === category.name}
+            >
+              {category.imageUrl && !failedCategoryImages[category.name] ? (
+                <img
+                  className="hero-category-card__image"
+                  src={category.imageUrl}
+                  alt=""
+                  loading="lazy"
+                  aria-hidden="true"
+                  onError={() =>
+                    setFailedCategoryImages((current) => ({
+                      ...current,
+                      [category.name]: true,
+                    }))
+                  }
+                />
+              ) : null}
+              <span className="hero-category-card__overlay">
+                <span className="hero-category-card__label">{category.name}</span>
               </span>
-            ))}
-          </div>
+            </button>
+          ))}
+        </div>
 
-          <p className="hero-panel__hint">
-            Tryck på plus och minus för att välja antal. Lägg sedan till
-            produkten i varukorgen till höger.
-          </p>
+        <div className="hero-panel__actions">
+          <button
+            type="button"
+            className={`hero-panel__all-button ${selectedCategory === 'Alla produkter' ? 'hero-panel__all-button--active' : ''}`}
+            onClick={() => setSelectedCategory('Alla produkter')}
+            aria-pressed={selectedCategory === 'Alla produkter'}
+          >
+            Alla produkter
+          </button>
         </div>
       </section>
 
@@ -262,9 +290,7 @@ function KioskPage() {
           ) : (
             <ProductGrid
               products={visibleProducts}
-              categories={categories}
               selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
               selectedQuantities={selectedQuantities}
               onDecreaseQuantity={(productId) =>
                 updateSelectedQuantity(productId, -1)

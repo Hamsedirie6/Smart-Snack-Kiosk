@@ -47,4 +47,5 @@ src/backend/SmartSnackKiosk.Api/appsettings.Development.json
 
 # Temp
 tmp/
+tmp-build/
 temp/

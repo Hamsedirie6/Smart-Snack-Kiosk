@@ -24,6 +24,7 @@ public class CategoryService : ICategoryService
             {
                 Id = category.Id,
                 Name = category.Name,
+                ImageUrl = category.ImageUrl,
                 CreatedAt = category.CreatedAt
             })
             .ToListAsync();
@@ -38,9 +39,24 @@ public class CategoryService : ICategoryService
             {
                 Id = category.Id,
                 Name = category.Name,
+                ImageUrl = category.ImageUrl,
                 CreatedAt = category.CreatedAt
             })
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<IEnumerable<KioskCategoryDto>> GetKioskAsync()
+    {
+        return await _context.Categories
+            .AsNoTracking()
+            .OrderBy(category => category.Name)
+            .Select(category => new KioskCategoryDto
+            {
+                Id = category.Id,
+                Name = category.Name,
+                ImageUrl = category.ImageUrl
+            })
+            .ToListAsync();
     }
 
     public async Task<CategoryResponseDto> CreateAsync(CategoryCreateDto categoryCreateDto)
@@ -48,6 +64,7 @@ public class CategoryService : ICategoryService
         var category = new Category
         {
             Name = categoryCreateDto.Name.Trim(),
+            ImageUrl = NormalizeImageUrl(categoryCreateDto.ImageUrl),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -58,6 +75,7 @@ public class CategoryService : ICategoryService
         {
             Id = category.Id,
             Name = category.Name,
+            ImageUrl = category.ImageUrl,
             CreatedAt = category.CreatedAt
         };
     }
@@ -71,12 +89,14 @@ public class CategoryService : ICategoryService
         }
 
         category.Name = categoryUpdateDto.Name.Trim();
+        category.ImageUrl = NormalizeImageUrl(categoryUpdateDto.ImageUrl);
         await _context.SaveChangesAsync();
 
         return new CategoryResponseDto
         {
             Id = category.Id,
             Name = category.Name,
+            ImageUrl = category.ImageUrl,
             CreatedAt = category.CreatedAt
         };
     }
@@ -107,5 +127,10 @@ public class CategoryService : ICategoryService
         await _context.SaveChangesAsync();
 
         return true;
+    }
+
+    private static string? NormalizeImageUrl(string? imageUrl)
+    {
+        return string.IsNullOrWhiteSpace(imageUrl) ? null : imageUrl.Trim();
     }
 }

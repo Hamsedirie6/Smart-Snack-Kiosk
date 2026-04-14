@@ -12,5 +12,7 @@ public class KioskProductDto
 
     public string CategoryName { get; set; } = string.Empty;
 
+    public string? CategoryImageUrl { get; set; }
+
     public int StockQuantity { get; set; }
 }
