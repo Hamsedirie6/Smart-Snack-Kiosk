@@ -5,6 +5,7 @@ import {
   updateProduct,
   deactivateProduct,
   reactivateProduct,
+  deleteProduct,
 } from '../../api/adminApi'
 import { getCategories } from '../../api/adminApi'
 
@@ -38,6 +39,10 @@ function ProductsPage() {
   // Aktivera-dialog: { id, name } eller null
   const [pendingReactivate, setPendingReactivate] = useState(null)
   const [isReactivating, setIsReactivating] = useState(false)
+
+  // Ta bort-dialog: { id, name } eller null
+  const [pendingDelete, setPendingDelete] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const nameInputRef = useRef(null)
   const feedbackTimerRef = useRef(null)
@@ -182,6 +187,36 @@ function ProductsPage() {
       showFeedback('error', 'Kunde inte aktivera produkten. Försök igen.')
     } finally {
       setIsReactivating(false)
+    }
+  }
+
+  function openDeleteConfirm(product) {
+    setPendingDelete({ id: product.id, name: product.name })
+  }
+
+  function cancelDelete() {
+    setPendingDelete(null)
+  }
+
+  async function handleDelete() {
+    if (!pendingDelete) return
+
+    setIsDeleting(true)
+    try {
+      await deleteProduct(pendingDelete.id)
+      await fetchData()
+      const name = pendingDelete.name
+      setPendingDelete(null)
+      showFeedback('success', `"${name}" togs bort.`)
+    } catch (error) {
+      setPendingDelete(null)
+      if (error.response?.status === 404) {
+        showFeedback('error', 'Produkten hittades inte. Ladda om sidan och försök igen.')
+      } else {
+        showFeedback('error', 'Kunde inte ta bort produkten. Försök igen.')
+      }
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -414,6 +449,37 @@ function ProductsPage() {
         </div>
       )}
 
+      {/* Ta bort-dialog */}
+      {pendingDelete && (
+        <div className="dialog-overlay" onClick={cancelDelete}>
+          <div className="dialog-box" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h2>Ta bort produkt?</h2>
+            <p>
+              Är du säker på att du vill ta bort{' '}
+              <strong>"{pendingDelete.name}"</strong>?
+              <br />
+              Åtgärden kan inte ångras.
+            </p>
+            <div className="dialog-box__actions">
+              <button
+                className="btn btn--ghost btn--sm"
+                onClick={cancelDelete}
+                disabled={isDeleting}
+              >
+                Avbryt
+              </button>
+              <button
+                className="btn btn--danger btn--sm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Tar bort...' : 'Ta bort'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabell */}
       {products.length > 0 && (
         <div className="table-wrapper">
@@ -477,6 +543,13 @@ function ProductsPage() {
                           Aktivera
                         </button>
                       )}
+                      <button
+                        className="btn btn--danger btn--sm"
+                        onClick={() => openDeleteConfirm(product)}
+                        disabled={isFormOpen}
+                      >
+                        Ta bort
+                      </button>
                     </div>
                   </td>
                 </tr>
