@@ -30,12 +30,14 @@ public class AppDbContext : DbContext
             .WithOne(si => si.Sale)
             .HasForeignKey(si => si.SaleId);
 
-        // Product → SaleItem (1-to-many)
+        // Product → SaleItem (1-to-many, nullable FK)
+        // SetNull: om en produkt tas bort sätts ProductId till null i SaleItem.
+        // Försäljningshistoriken bevaras via ProductName-kolumnen.
         modelBuilder.Entity<Product>()
             .HasMany(p => p.SaleItems)
             .WithOne(si => si.Product)
             .HasForeignKey(si => si.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.SetNull);
 
         // Constraints
         modelBuilder.Entity<Category>()

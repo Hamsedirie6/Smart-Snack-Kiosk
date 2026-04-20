@@ -56,6 +56,7 @@ public class SaleService : ISaleService
             {
                 SaleId = sale.Id,
                 ProductId = product.Id,
+                ProductName = product.Name,   // sparas vid köptillfället
                 Quantity = item.Quantity,
                 UnitPrice = product.Price,
                 LineTotal = lineTotal
@@ -77,7 +78,7 @@ public class SaleService : ISaleService
             Items = saleItems.Select(si => new SaleItemResponseDto
             {
                 ProductId = si.ProductId,
-                ProductName = products.First(p => p.Id == si.ProductId).Name,
+                ProductName = si.ProductName,
                 UnitPrice = si.UnitPrice,
                 Quantity = si.Quantity,
                 LineTotal = si.LineTotal
@@ -89,7 +90,6 @@ public class SaleService : ISaleService
     {
         var sale = await _context.Sales
             .Include(s => s.SaleItems)
-            .ThenInclude(si => si.Product)
             .FirstOrDefaultAsync(s => s.Id == saleId);
 
         if (sale == null) return null;
@@ -102,7 +102,7 @@ public class SaleService : ISaleService
             Items = sale.SaleItems.Select(si => new SaleItemResponseDto
             {
                 ProductId = si.ProductId,
-                ProductName = si.Product.Name,
+                ProductName = si.ProductName,   // läses från sparad kolumn
                 UnitPrice = si.UnitPrice,
                 Quantity = si.Quantity,
                 LineTotal = si.LineTotal
