@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getKpis, getSalesOverTime, getTopProducts, getDashboardLowStock } from '../../api/adminApi'
 
 const PERIODS = [
-  { value: 'day', label: 'Dag' },
-  { value: 'week', label: 'Vecka' },
-  { value: 'month', label: 'Månad' },
+  { value: 'day', label: 'Idag' },
+  { value: 'week', label: 'Denna vecka' },
+  { value: 'month', label: 'Denna månad' },
 ]
 
 const STATUS_BADGE = {
@@ -19,77 +19,158 @@ function formatPrice(amount) {
   }) + ' kr'
 }
 
-function formatDate(isoString) {
+function formatDateShort(isoString) {
   return new Date(isoString).toLocaleDateString('sv-SE', {
     day: 'numeric',
     month: 'short',
   })
 }
 
-// Enkel stapeldiagram-komponent utan externa bibliotek
-function BarChart({ data }) {
-  if (!data || data.length === 0) {
-    return (
-      <p style={{ color: 'var(--a-text-muted)', fontSize: '0.875rem', textAlign: 'center', padding: '2rem 0' }}>
-        Ingen försäljningsdata för perioden.
-      </p>
-    )
-  }
-
-  const maxRevenue = Math.max(...data.map((d) => d.revenue), 1)
-
+// ─── KPI-kort: ett kort per period med intäkt, köp och snittköp ───────────────
+function PeriodKpiCard({ label, icon, revenue, salesCount, avgSale, accentColor }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '120px', padding: '0 4px' }}>
-      {data.map((point, i) => {
-        const heightPct = (point.revenue / maxRevenue) * 100
-        return (
-          <div
-            key={i}
-            title={`${formatDate(point.date)}: ${formatPrice(point.revenue)} (${point.salesCount} köp)`}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              height: `${Math.max(heightPct, 2)}%`,
-              background: 'var(--a-accent)',
-              borderRadius: '3px 3px 0 0',
-              opacity: 0.85,
-              cursor: 'default',
-              transition: 'opacity 0.15s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.85')}
-          />
-        )
-      })}
-    </div>
-  )
-}
-
-function KpiCard({ label, value, sub }) {
-  return (
-    <div className="card">
-      <div className="card__body">
-        <p style={{
-          fontSize: '0.75rem',
-          fontWeight: 700,
-          color: 'var(--a-text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          marginBottom: '0.25rem',
-        }}>
-          {label}
-        </p>
-        <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--a-text)', margin: '0 0 0.125rem' }}>
-          {value}
-        </p>
-        {sub && (
-          <p style={{ fontSize: '0.8rem', color: 'var(--a-text-muted)', margin: 0 }}>{sub}</p>
-        )}
+    <div className="db-kpi-card" style={{ borderTopColor: accentColor }}>
+      <div className="db-kpi-card__header">
+        <span className="db-kpi-card__icon">{icon}</span>
+        <span className="db-kpi-card__label">{label}</span>
+      </div>
+      <p className="db-kpi-card__revenue">{formatPrice(revenue)}</p>
+      <div className="db-kpi-card__footer">
+        <span className="db-kpi-card__meta">
+          <strong>{salesCount}</strong> {salesCount === 1 ? 'köp' : 'köp'}
+        </span>
+        <span className="db-kpi-card__divider">·</span>
+        <span className="db-kpi-card__meta">
+          Snitt <strong>{formatPrice(avgSale)}</strong>
+        </span>
       </div>
     </div>
   )
 }
 
+// ─── Stapeldiagram med rutnät, datumstämplar och hover-tooltip ────────────────
+function BarChart({ data }) {
+  const [tooltip, setTooltip] = useState(null)
+  const containerRef = useRef(null)
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="db-empty-state">
+        <span className="db-empty-state__icon">📊</span>
+        <p>Ingen försäljningsdata för perioden.</p>
+      </div>
+    )
+  }
+
+  const maxRevenue = Math.max(...data.map((d) => d.revenue), 1)
+  const gridLines = [100, 75, 50, 25, 0]
+
+  function handleMouseEnter(e, point) {
+    const rect = containerRef.current?.getBoundingClientRect()
+    const barRect = e.currentTarget.getBoundingClientRect()
+    setTooltip({
+      x: barRect.left - rect.left + barRect.width / 2,
+      point,
+    })
+  }
+
+  return (
+    <div className="db-chart-wrapper" ref={containerRef}>
+      {/* Y-axelns rutnätslinjer */}
+      <div className="db-chart-grid">
+        {gridLines.map((pct) => (
+          <div key={pct} className="db-chart-grid__line" style={{ bottom: `${pct}%` }}>
+            <span className="db-chart-grid__label">
+              {pct === 0 ? '0' : formatPrice((maxRevenue * pct) / 100).replace(' kr', '')}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Staplar */}
+      <div className="db-chart-bars">
+        {data.map((point, i) => {
+          const heightPct = Math.max((point.revenue / maxRevenue) * 100, 2)
+          return (
+            <div key={i} className="db-chart-bar-col">
+              <div
+                className="db-chart-bar"
+                style={{ height: `${heightPct}%` }}
+                onMouseEnter={(e) => handleMouseEnter(e, point)}
+                onMouseLeave={() => setTooltip(null)}
+              />
+              <span className="db-chart-bar-date">{formatDateShort(point.date)}</span>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Hover-tooltip */}
+      {tooltip && (
+        <div
+          className="db-chart-tooltip"
+          style={{ left: `${tooltip.x}px` }}
+        >
+          <strong>{formatDateShort(tooltip.point.date)}</strong>
+          <span>{formatPrice(tooltip.point.revenue)}</span>
+          <span style={{ color: 'var(--a-text-muted)', fontSize: '0.75rem' }}>
+            {tooltip.point.salesCount} köp
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Topprodukter med horisontella progressbars ────────────────────────────────
+function TopProductsList({ products }) {
+  if (products.length === 0) {
+    return (
+      <div className="db-empty-state">
+        <span className="db-empty-state__icon">🏆</span>
+        <p>Ingen försäljning under perioden.</p>
+      </div>
+    )
+  }
+
+  const maxRevenue = Math.max(...products.map((p) => p.revenue), 1)
+
+  return (
+    <ol className="db-top-list">
+      {products.map((p, i) => {
+        const barWidth = (p.revenue / maxRevenue) * 100
+        return (
+          <li key={p.productId} className="db-top-item">
+            <div className="db-top-item__header">
+              <span className="db-top-item__rank">#{i + 1}</span>
+              <span className="db-top-item__name">{p.productName}</span>
+              <span className="db-top-item__revenue">{formatPrice(p.revenue)}</span>
+            </div>
+            <div className="db-top-item__bar-track">
+              <div
+                className="db-top-item__bar-fill"
+                style={{ width: `${barWidth}%` }}
+              />
+            </div>
+            <span className="db-top-item__units">{p.unitsSold} sålda enheter</span>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+// ─── Sektionshuvud ─────────────────────────────────────────────────────────────
+function SectionHeader({ title, sub }) {
+  return (
+    <div className="db-section-header">
+      <span className="db-section-header__title">{title}</span>
+      {sub && <span className="db-section-header__sub">{sub}</span>}
+    </div>
+  )
+}
+
+// ─── Huvudkomponent ────────────────────────────────────────────────────────────
 function DashboardPage() {
   const [kpis, setKpis] = useState(null)
   const [salesData, setSalesData] = useState([])
@@ -147,8 +228,6 @@ function DashboardPage() {
     fetchChart(newPeriod)
   }
 
-  // --- Renderar ---
-
   if (isLoading) {
     return (
       <div className="loading-state">
@@ -168,7 +247,8 @@ function DashboardPage() {
     )
   }
 
-  const periodLabel = PERIODS.find((p) => p.value === period)?.label.toLowerCase() ?? period
+  const outOfStock = lowStock.filter((p) => p.stockStatus === 'Slut i lager')
+  const periodLabel = PERIODS.find((p) => p.value === period)?.label ?? period
 
   return (
     <div>
@@ -180,69 +260,72 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI-kort – tre kolumner */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
-        <KpiCard
-          label="Intäkt idag"
-          value={formatPrice(kpis.revenueToday)}
-          sub={`${kpis.salesCountToday} ${kpis.salesCountToday === 1 ? 'köp' : 'köp'}`}
+      {/* Lagervarning – visas bara om produkter är slut */}
+      {outOfStock.length > 0 && (
+        <div className="db-alert db-alert--danger" style={{ marginBottom: '1.5rem' }}>
+          <span className="db-alert__icon">⚠</span>
+          <span>
+            <strong>{outOfStock.length} {outOfStock.length === 1 ? 'produkt' : 'produkter'} är slut i lager</strong>
+            {' — '}{outOfStock.map((p) => p.productName).join(', ')}
+          </span>
+        </div>
+      )}
+
+      {/* KPI-kort: ett per period */}
+      <div className="db-kpi-grid">
+        <PeriodKpiCard
+          label="Idag"
+          icon="📅"
+          revenue={kpis.revenueToday}
+          salesCount={kpis.salesCountToday}
+          avgSale={kpis.averageSaleAmountToday}
+          accentColor="var(--a-accent)"
         />
-        <KpiCard
-          label="Intäkt denna vecka"
-          value={formatPrice(kpis.revenueThisWeek)}
-          sub={`${kpis.salesCountThisWeek} köp`}
+        <PeriodKpiCard
+          label="Denna vecka"
+          icon="📆"
+          revenue={kpis.revenueThisWeek}
+          salesCount={kpis.salesCountThisWeek}
+          avgSale={kpis.averageSaleAmountThisWeek}
+          accentColor="var(--a-success)"
         />
-        <KpiCard
-          label="Intäkt denna månad"
-          value={formatPrice(kpis.revenueThisMonth)}
-          sub={`${kpis.salesCountThisMonth} köp`}
-        />
-        <KpiCard
-          label="Snittköp idag"
-          value={formatPrice(kpis.averageSaleAmountToday)}
-        />
-        <KpiCard
-          label="Snittköp denna vecka"
-          value={formatPrice(kpis.averageSaleAmountThisWeek)}
-        />
-        <KpiCard
-          label="Snittköp denna månad"
-          value={formatPrice(kpis.averageSaleAmountThisMonth)}
+        <PeriodKpiCard
+          label="Denna månad"
+          icon="🗓️"
+          revenue={kpis.revenueThisMonth}
+          salesCount={kpis.salesCountThisMonth}
+          avgSale={kpis.averageSaleAmountThisMonth}
+          accentColor="var(--a-warning)"
         />
       </div>
 
       {/* Periodväljare */}
-      <div className="inline-form" style={{ marginBottom: '0.75rem' }}>
-        {PERIODS.map((p) => (
-          <button
-            key={p.value}
-            className={`btn btn--sm ${period === p.value ? 'btn--primary' : 'btn--ghost'}`}
-            onClick={() => handlePeriod(p.value)}
-            disabled={isChartLoading}
-          >
-            {p.label}
-          </button>
-        ))}
+      <div className="db-period-bar">
+        <span className="db-period-bar__label">Visa diagram för:</span>
+        <div className="inline-form">
+          {PERIODS.map((p) => (
+            <button
+              key={p.value}
+              className={`btn btn--sm ${period === p.value ? 'btn--primary' : 'btn--ghost'}`}
+              onClick={() => handlePeriod(p.value)}
+              disabled={isChartLoading}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Försäljning + Topprodukter – sida vid sida */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
-
-        {/* Försäljning över tid */}
+      {/* Diagram + Topprodukter sida vid sida */}
+      <div className="db-chart-row">
         <div className="card">
           <div className="card__body">
-            <p style={{
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              color: 'var(--a-text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '0.75rem',
-            }}>
-              Försäljning – {periodLabel}
-            </p>
+            <SectionHeader
+              title="Försäljning över tid"
+              sub={periodLabel}
+            />
             {isChartLoading ? (
-              <div className="loading-state" style={{ padding: '2rem 0' }}>
+              <div className="loading-state" style={{ padding: '3rem 0' }}>
                 <div className="loading-spinner" />
               </div>
             ) : (
@@ -251,56 +334,32 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* Topprodukter */}
         <div className="card">
           <div className="card__body">
-            <p style={{
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              color: 'var(--a-text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '0.75rem',
-            }}>
-              Topprodukter – {periodLabel}
-            </p>
-            {topProducts.length === 0 ? (
-              <p style={{ color: 'var(--a-text-muted)', fontSize: '0.875rem', textAlign: 'center', padding: '2rem 0' }}>
-                Ingen försäljning under perioden.
-              </p>
+            <SectionHeader
+              title="Topprodukter"
+              sub={periodLabel}
+            />
+            {isChartLoading ? (
+              <div className="loading-state" style={{ padding: '3rem 0' }}>
+                <div className="loading-spinner" />
+              </div>
             ) : (
-              <ol style={{ margin: 0, padding: '0 0 0 1.1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {topProducts.map((p) => (
-                  <li key={p.productId}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{p.productName}</span>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--a-text-muted)', marginLeft: '0.5rem', whiteSpace: 'nowrap' }}>
-                        {p.unitsSold} st · {formatPrice(p.revenue)}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ol>
+              <TopProductsList products={topProducts} />
             )}
           </div>
         </div>
       </div>
 
-      {/* Lagervarningar */}
+      {/* Lagervarningar – full tabell */}
       {lowStock.length > 0 && (
         <div className="card">
           <div className="card__body">
-            <p style={{
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              color: 'var(--a-text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '0.75rem',
-            }}>
-              Lagervarningar ({lowStock.length})
-            </p>
-            <table className="data-table">
+            <SectionHeader
+              title="Lagervarningar"
+              sub={`${lowStock.length} ${lowStock.length === 1 ? 'produkt' : 'produkter'} behöver åtgärd`}
+            />
+            <table className="data-table" style={{ marginTop: '1rem' }}>
               <thead>
                 <tr>
                   <th>Produkt</th>

@@ -106,13 +106,13 @@ public class DashboardService : IDashboardService
         }
 
         return await query
-            .GroupBy(si => new { si.ProductId, si.Product.Name })
+            .GroupBy(si => new { si.ProductId, si.ProductName })
             .OrderByDescending(g => g.Sum(si => si.Quantity))
             .Take(top)
             .Select(g => new TopProductDto
             {
                 ProductId = g.Key.ProductId,
-                ProductName = g.Key.Name,
+                ProductName = g.Key.ProductName,
                 UnitsSold = g.Sum(si => si.Quantity),
                 Revenue = g.Sum(si => si.LineTotal)
             })

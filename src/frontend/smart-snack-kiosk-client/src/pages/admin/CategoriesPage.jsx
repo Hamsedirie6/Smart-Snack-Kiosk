@@ -453,14 +453,14 @@ function CategoriesPage() {
                         <button
                           className="btn btn--ghost btn--sm"
                           onClick={() => openEdit(category)}
-                          disabled={isEditing || editingId !== null}
+                          disabled={editingId !== null}
                         >
                           Redigera
                         </button>
                         <button
                           className="btn btn--danger btn--sm"
                           onClick={() => openDeleteConfirm(category)}
-                          disabled={isEditing || editingId !== null}
+                          disabled={editingId !== null}
                         >
                           Ta bort
                         </button>

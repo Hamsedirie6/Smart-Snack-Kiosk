@@ -96,6 +96,19 @@ public class ProductsController : ControllerBase
         return Ok(reactivatedProduct);
     }
 
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteProduct(int id)
+    {
+        var result = await _productService.DeleteAsync(id);
+
+        if (result is null) return NotFound();
+
+        if (result == false)
+            return Conflict(new { error = "Produkten kan inte tas bort eftersom den har försäljningshistorik kopplad till sig." });
+
+        return NoContent();
+    }
+
     [HttpGet("kiosk")]
     [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<KioskProductDto>>> GetKioskProducts()

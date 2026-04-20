@@ -143,6 +143,19 @@ public class ProductService : IProductService
             .ToListAsync();
     }
 
+    public async Task<bool?> DeleteAsync(int id)
+    {
+        var product = await _context.Products.FindAsync(id);
+
+        if (product is null) return null;
+
+        // SaleItems som pekar på denna produkt får ProductId = null (SetNull).
+        // ProductName är redan sparat i SaleItem så historiken bevaras.
+        _context.Products.Remove(product);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     private async Task<bool> CategoryExistsAsync(int categoryId)
     {
         return await _context.Categories.AnyAsync(category => category.Id == categoryId);

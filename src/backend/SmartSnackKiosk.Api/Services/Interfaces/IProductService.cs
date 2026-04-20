@@ -11,4 +11,5 @@ public interface IProductService
     Task<ProductResponseDto?> DeactivateAsync(int id);
     Task<ProductResponseDto?> ReactivateAsync(int id);
     Task<IEnumerable<KioskProductDto>> GetKioskProductsAsync();
+    Task<bool?> DeleteAsync(int id);
 }
